@@ -37,9 +37,10 @@ button{padding:14px;border-radius:12px;border:0;background:#2b3d5c;color:#fff;fo
 <script src="config.js"></script>
 <script>const $=id=>document.getElementById(id),C=['#e53935','#1e88e5','#43a047','#fb8c00','#8e24aa','#00acc1','#f4511e','#6d4c41'];
 const IC={taxi:'🚕',bus:'🚌',metro:'🚇',black:'⬛'},LB={taxi:'Taxi',bus:'Bus',metro:'Metro',black:'Black ticket'};
-let ws,M,S,me=localStorage.pid,zoom=.7,lastTurn,lastNote;const SU=(window.SERVER_URL||'').replace(/\/$/,'');
+let cenKey,ws,M,S,me=localStorage.pid,zoom=.7,lastTurn,lastNote;const SU=(window.SERVER_URL||'').replace(/\/$/,'');
 const tx=m=>ws&&ws.readyState==1&&ws.send(JSON.stringify(m));
 function toast(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(e.t);e.t=setTimeout(()=>e.hidden=true,4500)}
+window.onerror=m=>toast('Error: '+m);
 function conn(){if(ws&&ws.readyState<2)return;ws=new WebSocket(SU?SU.replace(/^http/,'ws'):(location.protocol=='https:'?'wss://':'ws://')+location.host);
  ws.onopen=()=>{if(localStorage.code&&me)tx({t:'join',code:localStorage.code,pid:me,name:localStorage.name})};
  ws.onmessage=e=>{const m=JSON.parse(e.data);on[m.t]&&on[m.t](m)};ws.onclose=()=>setTimeout(conn,1500)}
@@ -57,7 +58,7 @@ $('zc').onclick=()=>{const p=S&&S.players.find(p=>p.id==me);p&&p.pos&&center(p.p
 $('sh').onclick=()=>{const u=(SU?SU.replace(/^ws/,'http'):location.origin)+'/?room='+S.code,t=`Join my Catch Me game! Code: ${S.code}`;navigator.share?navigator.share({title:'Catch Me',text:t,url:u}):navigator.clipboard.writeText(t+' '+u)};
 function zm(f){zoom=Math.min(2.2,Math.max(.35,zoom*f));const v=$('svg');v.style.width=M.W*zoom+'px';v.style.height=M.H*zoom+'px';v.classList.toggle('z',zoom>=1.1)}
 function base(){const P=M.P,ids=Object.keys(P),has={};M.edges.forEach(e=>[e.a,e.b].forEach(n=>(has[n]=has[n]||new Set).add(e.t)));
- let h=`<defs><filter id="gl"><feGaussianBlur stdDeviation="26"/><feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 24 -11"/></filter></defs><rect width="${M.W}" height="${M.H}" fill="#3a86b4"/><g filter="url(#gl)" fill="#ecdfba">${ids.map(i=>`<circle cx="${P[i].x}" cy="${P[i].y}" r="105"/>`).join('')}</g>`;
+ let h=`<rect width="${M.W}" height="${M.H}" fill="#3a86b4"/><g fill="#cdbf93">${ids.map(i=>`<circle cx="${P[i].x}" cy="${P[i].y}" r="116"/>`).join('')}</g><g fill="#ecdfba">${ids.map(i=>`<circle cx="${P[i].x}" cy="${P[i].y}" r="104"/>`).join('')}</g>`;
  const st={ferry:['#1565c0',5,'14 10'],metro:['#d62839',13,''],bus:['#2e9e4f',8,''],taxi:['#3b3b3b',3,'']};
  for(const t of['ferry','metro','bus','taxi'])M.edges.filter(e=>e.t==t).forEach(e=>h+=`<line x1="${P[e.a].x}" y1="${P[e.a].y}" x2="${P[e.b].x}" y2="${P[e.b].y}" stroke="${st[t][0]}" stroke-width="${st[t][1]}" stroke-dasharray="${st[t][2]}" stroke-linecap="round"/>`);
  ids.forEach(i=>{const p=P[i],s=has[i]||new Set,dot=(c,dx,dy)=>`<circle cx="${p.x+dx}" cy="${p.y+dy}" r="8" fill="${c}" stroke="#fff" stroke-width="2"/>`;
@@ -78,7 +79,7 @@ function lobby(){$('lc').textContent=S.code;const h=S.host==me;
 function game(){const you=S.players.find(p=>p.id==me),X=you.role=='x',mine=S.turn==me,cur=S.players.find(p=>p.id==S.turn);
  const nx=M.reveal.find(r=>r>S.round);$('info').innerHTML=`${X?'🕶 <b>You are Mr. X</b>':'🕵 <b>Detective</b>'} · Move <b>${S.round}/${M.rounds}</b>${nx?` · Reveal at ${nx}`:''}`;
  $('ban').className=mine?'me':'';$('ban').textContent=S.phase=='over'?'Game over':mine?(X&&!S.fresh?'Move again!':'Your move!'):`${cur?cur.name:''}${cur&&!cur.on?' (offline)':''}…`;
- if(mine&&lastTurn!=S.round+':'+S.turn){navigator.vibrate&&navigator.vibrate(200);center(you.pos)}lastTurn=S.round+':'+S.turn;
+ if(mine&&lastTurn!=S.round+':'+S.turn){navigator.vibrate&&navigator.vibrate(200);center(you.pos)}lastTurn=S.round+':'+S.turn;if(cenKey!=S.code+S.phase){cenKey=S.code+S.phase;center(you.pos)}
  const t=you.tk||{};$('act').innerHTML=`<span>${X?`⬛ ${t.black} black · ✖2 ${t.dbl} double`:`🚕 ${t.taxi} · 🚌 ${t.bus} · 🚇 ${t.metro}`}</span>`+(X&&mine&&S.fresh&&S.left==1&&t.dbl>0&&S.round<=M.rounds-2?'<button id="db" class="pri">Double move ✖2</button>':X&&mine&&!S.fresh?'<span>Double move: 2nd step</span>':'');
  const db=$('db');if(db)db.onclick=()=>tx({t:'double'});
  let di=0;$('pl').innerHTML=S.players.map(p=>{const x=p.role=='x',c=x?'#000':C[(di++)%8];return`<div class="chip ${p.id==S.turn?'on':''} ${p.on?'':'off'}" style="border-color:${x?'#fff':c}">${x?'🕶 ':''}${p.name}${p.id==me?' (you)':''}${p.on?'':' ⚠'}${x?'':`<br>${p.tk.taxi}🚕 ${p.tk.bus}🚌 ${p.tk.metro}🚇`}${KB(p)}</div>`}).join('');
