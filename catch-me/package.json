@@ -1,0 +1,1 @@
+{"name":"catch-me","version":"1.0.0","description":"Catch Me - online multiplayer chase game set in Mumbai","scripts":{"start":"node server.js"},"dependencies":{"ws":"^8.18.0"}}

@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: catch-me
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    plan: starter   # always-on; free plans sleep and drop live games

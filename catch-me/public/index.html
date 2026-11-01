@@ -1,0 +1,100 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Catch Me</title><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0f1b2d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;height:100%;background:#0f1b2d;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overscroll-behavior:none}
+[hidden]{display:none!important}
+.scr{min-height:100%;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:24px max(24px,env(safe-area-inset-right)) 24px;max-width:460px;margin:auto}
+h1{font-size:46px;letter-spacing:4px;margin:0;text-align:center;color:#ffd60a;text-shadow:0 3px 0 #000}.sub{text-align:center;opacity:.75;margin:0 0 8px}
+input{padding:14px;border-radius:12px;border:2px solid #2b3d5c;background:#16253d;color:#fff;font-size:17px;width:100%}
+button{padding:14px;border-radius:12px;border:0;background:#2b3d5c;color:#fff;font-size:17px;font-weight:700}button.pri{background:#ffd60a;color:#111}button:disabled{opacity:.4}
+.or{text-align:center;opacity:.6}#er{color:#ff7b7b;text-align:center;min-height:20px}small{opacity:.6;text-align:center}
+.code{font-size:56px;font-weight:900;letter-spacing:10px;text-align:center;color:#ffd60a}.pr{display:flex;align-items:center;gap:10px;background:#16253d;padding:10px 14px;border-radius:12px}.dot{width:14px;height:14px;border-radius:50%}
+#game{height:100dvh;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+#top{padding:8px 12px;background:#16253d;display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px}
+#ban{font-weight:800;padding:6px 12px;border-radius:20px;background:#2b3d5c}#ban.me{background:#ffd60a;color:#111;animation:pl 1s infinite}
+#mapwrap{flex:1;overflow:auto;position:relative;background:#3a86b4;-webkit-overflow-scrolling:touch}svg{display:block}
+#zm{position:fixed;right:10px;top:70px;display:flex;flex-direction:column;gap:6px}#zm button{width:42px;height:42px;padding:0;font-size:24px;opacity:.9}
+#bot{background:#16253d;padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:6px}
+#pl{display:flex;gap:6px;overflow-x:auto}.chip button{margin-top:4px;padding:3px 8px!important}.chip{flex:none;padding:4px 8px;border-radius:10px;font-size:12px;border-left:6px solid;background:#0f1b2d}.chip.on{outline:2px solid #ffd60a}.chip.off{opacity:.45}
+#log{display:flex;gap:3px;overflow-x:auto;padding-bottom:2px}.lg{flex:none;width:34px;height:40px;border-radius:6px;background:#0f1b2d;font-size:9px;text-align:center;padding-top:2px;border:2px solid transparent}.lg.rv{border-color:#ffd60a}.lg b{display:block;font-size:15px;line-height:20px}
+#act{display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:14px}#act button{padding:8px 12px;font-size:14px}
+#sheet,#end{position:fixed;left:0;right:0;bottom:0;background:#16253dF2;padding:18px 18px calc(18px + env(safe-area-inset-bottom));border-radius:20px 20px 0 0;display:flex;flex-direction:column;gap:10px;box-shadow:0 -6px 30px #000a;z-index:5}
+#end{top:0;border-radius:0;justify-content:center;text-align:center;background:#0f1b2dEE}#end h2{font-size:34px;margin:0;color:#ffd60a}
+.pulse{transform-box:fill-box;transform-origin:center;animation:pu 1s infinite}@keyframes pu{50%{transform:scale(1.35);opacity:.5}}@keyframes pl{50%{transform:scale(1.06)}}
+.nd{cursor:pointer}.gn{display:none}.z .gn{display:inline}#toast{position:fixed;top:calc(10px + env(safe-area-inset-top));left:12px;right:12px;background:#ffd60a;color:#111;padding:12px;border-radius:12px;font-weight:700;text-align:center;z-index:9}.nm{font-size:15px;fill:#222;paint-order:stroke;stroke:#fffc;stroke-width:3px;font-weight:600}
+</style></head><body>
+<div id="home" class="scr"><h1>CATCH ME</h1><p class="sub">Chase Mr. X through the streets of Mumbai</p>
+<input id="nm" placeholder="Your name" maxlength="14"><button id="cr" class="pri">Create room</button><div class="or">— or join friends —</div>
+<input id="cd" placeholder="ROOM CODE" maxlength="4" style="text-transform:uppercase;text-align:center;letter-spacing:6px"><button id="jn">Join room</button><div id="er"></div>
+<small>Install as an app: iPhone → Share → Add to Home Screen · Android → ⋮ → Install app</small></div>
+<div id="lobby" class="scr" hidden><p class="sub">Room code</p><div class="code" id="lc"></div><button id="sh">Invite friends</button><div id="lp" style="display:flex;flex-direction:column;gap:8px"></div>
+<button id="st" class="pri">Start game</button><small id="lh">3–9 players · one of you is secretly picked as Mr. X</small></div>
+<div id="game" hidden><div id="top"><span id="info"></span><span id="ban"></span></div>
+<div id="mapwrap"><svg id="svg" viewBox="0 0 800 1320"></svg></div><div id="zm"><button id="zi">+</button><button id="zo">−</button><button id="zc">🎯</button></div><div id="toast" hidden></div>
+<div id="bot"><div id="act"></div><div id="pl"></div><div id="log"></div></div><div id="sheet" hidden></div><div id="end" hidden></div></div>
+<script src="config.js"></script>
+<script>const $=id=>document.getElementById(id),C=['#e53935','#1e88e5','#43a047','#fb8c00','#8e24aa','#00acc1','#f4511e','#6d4c41'];
+const IC={taxi:'🚕',bus:'🚌',metro:'🚇',black:'⬛'},LB={taxi:'Taxi',bus:'Bus',metro:'Metro',black:'Black ticket'};
+let ws,M,S,me=localStorage.pid,zoom=.7,lastTurn,lastNote;const SU=(window.SERVER_URL||'').replace(/\/$/,'');
+const tx=m=>ws&&ws.readyState==1&&ws.send(JSON.stringify(m));
+function toast(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(e.t);e.t=setTimeout(()=>e.hidden=true,4500)}
+function conn(){if(ws&&ws.readyState<2)return;ws=new WebSocket(SU?SU.replace(/^http/,'ws'):(location.protocol=='https:'?'wss://':'ws://')+location.host);
+ ws.onopen=()=>{if(localStorage.code&&me)tx({t:'join',code:localStorage.code,pid:me,name:localStorage.name})};
+ ws.onmessage=e=>{const m=JSON.parse(e.data);on[m.t]&&on[m.t](m)};ws.onclose=()=>setTimeout(conn,1500)}
+const on={map:m=>{M=m;base()},hello:m=>{me=m.pid;localStorage.pid=me;localStorage.code=m.code},
+ err:m=>{$('er').textContent=m.msg;if(m.fatal){localStorage.removeItem('code');S=null;render()}},
+ kicked:()=>{localStorage.removeItem('code');S=null;render();toast('You were removed from the room by the host')},
+ state:s=>{S=s;if(s.notice&&s.notice!=lastNote)toast(s.notice);lastNote=s.notice;render()}};
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)conn()});
+document.addEventListener('click',e=>{const k=e.target.dataset&&e.target.dataset.kick;if(k&&confirm('Remove this player from the room?'))tx({t:'kick',id:k})});
+$('cd').value=new URLSearchParams(location.search).get('room')||'';$('nm').value=localStorage.name||'';
+const nm=()=>{localStorage.name=$('nm').value.trim()||'Player';return localStorage.name};
+$('cr').onclick=()=>tx({t:'create',name:nm()});$('jn').onclick=()=>tx({t:'join',code:$('cd').value,name:nm()});
+$('st').onclick=()=>tx({t:'start'});$('zi').onclick=()=>zm(1.25);$('zo').onclick=()=>zm(.8);
+$('zc').onclick=()=>{const p=S&&S.players.find(p=>p.id==me);p&&p.pos&&center(p.pos)};
+$('sh').onclick=()=>{const u=(SU?SU.replace(/^ws/,'http'):location.origin)+'/?room='+S.code,t=`Join my Catch Me game! Code: ${S.code}`;navigator.share?navigator.share({title:'Catch Me',text:t,url:u}):navigator.clipboard.writeText(t+' '+u)};
+function zm(f){zoom=Math.min(2.2,Math.max(.35,zoom*f));const v=$('svg');v.style.width=M.W*zoom+'px';v.style.height=M.H*zoom+'px';v.classList.toggle('z',zoom>=1.1)}
+function base(){const P=M.P,ids=Object.keys(P),has={};M.edges.forEach(e=>[e.a,e.b].forEach(n=>(has[n]=has[n]||new Set).add(e.t)));
+ let h=`<defs><filter id="gl"><feGaussianBlur stdDeviation="26"/><feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 24 -11"/></filter></defs><rect width="${M.W}" height="${M.H}" fill="#3a86b4"/><g filter="url(#gl)" fill="#ecdfba">${ids.map(i=>`<circle cx="${P[i].x}" cy="${P[i].y}" r="105"/>`).join('')}</g>`;
+ const st={ferry:['#1565c0',5,'14 10'],metro:['#d62839',13,''],bus:['#2e9e4f',8,''],taxi:['#3b3b3b',3,'']};
+ for(const t of['ferry','metro','bus','taxi'])M.edges.filter(e=>e.t==t).forEach(e=>h+=`<line x1="${P[e.a].x}" y1="${P[e.a].y}" x2="${P[e.b].x}" y2="${P[e.b].y}" stroke="${st[t][0]}" stroke-width="${st[t][1]}" stroke-dasharray="${st[t][2]}" stroke-linecap="round"/>`);
+ ids.forEach(i=>{const p=P[i],s=has[i]||new Set,dot=(c,dx,dy)=>`<circle cx="${p.x+dx}" cy="${p.y+dy}" r="8" fill="${c}" stroke="#fff" stroke-width="2"/>`;
+  h+=`<g class="nd" data-n="${i}"><circle cx="${p.x}" cy="${p.y}" r="32" fill="#fff0"/><circle cx="${p.x}" cy="${p.y}" r="21" fill="#fff" stroke="#222" stroke-width="3"/><text x="${p.x}" y="${p.y+6}" text-anchor="middle" font-size="17" font-weight="800">${i}</text>`+
+  (s.has('metro')?dot('#d62839',-18,-18):'')+(s.has('bus')?dot('#2e9e4f',18,-18):'')+(s.has('ferry')?dot('#1565c0',0,24):'')+`<text class="nm ${i>66?'gn':''}" x="${p.x}" y="${p.y+42}" text-anchor="middle">${p.n}</text></g>`});
+ const v=$('svg');v.setAttribute('viewBox',`0 0 ${M.W} ${M.H}`);v.innerHTML=h+'<g id="dyn" style="pointer-events:none"></g>';zm(1);
+ v.onclick=e=>{const n=e.target.closest('.nd');n&&tap(+n.dataset.n)}}
+function tap(n){if(!S||S.phase!='play'||S.turn!=me)return;const o=S.legal.filter(m=>m.to==n);if(!o.length)return;
+ if(o.length==1)return tx({t:'move',to:n,ticket:o[0].ticket});
+ $('sheet').hidden=false;$('sheet').innerHTML=`<b>Go to ${M.P[n].n} using:</b>`+o.map(m=>`<button data-k="${m.ticket}">${IC[m.ticket]} ${LB[m.ticket]}</button>`).join('')+'<button data-k="">Cancel</button>';
+ $('sheet').onclick=e=>{const k=e.target.dataset.k;if(k===undefined)return;$('sheet').hidden=true;k&&tx({t:'move',to:n,ticket:k})}}
+function render(){$('home').hidden=!!S;$('lobby').hidden=!S||S.phase!='lobby';$('game').hidden=!S||S.phase=='lobby';if(!S)return;
+ if(S.phase=='lobby')return lobby();game()}
+const KB=p=>S.host==me&&p.id!=me&&(!p.on||S.phase=='lobby')?`<button data-kick="${p.id}" style="margin-left:auto;padding:6px 10px;font-size:13px;background:#8b2635">Kick</button>`:'';
+function lobby(){$('lc').textContent=S.code;const h=S.host==me;
+ $('lp').innerHTML=S.players.map((p,i)=>`<div class="pr"><span class="dot" style="background:${C[i%8]}"></span>${p.name}${p.id==me?' (you)':''}${p.id==S.host?' 👑':''}${p.on?'':' · offline'}${KB(p)}</div>`).join('');
+ $('st').hidden=!h;$('st').disabled=S.players.length<3;$('lh').textContent=`${S.players.length}/9 joined · need 3+ to start${h?'':' · waiting for host'}`}
+function game(){const you=S.players.find(p=>p.id==me),X=you.role=='x',mine=S.turn==me,cur=S.players.find(p=>p.id==S.turn);
+ const nx=M.reveal.find(r=>r>S.round);$('info').innerHTML=`${X?'🕶 <b>You are Mr. X</b>':'🕵 <b>Detective</b>'} · Move <b>${S.round}/${M.rounds}</b>${nx?` · Reveal at ${nx}`:''}`;
+ $('ban').className=mine?'me':'';$('ban').textContent=S.phase=='over'?'Game over':mine?(X&&!S.fresh?'Move again!':'Your move!'):`${cur?cur.name:''}${cur&&!cur.on?' (offline)':''}…`;
+ if(mine&&lastTurn!=S.round+':'+S.turn){navigator.vibrate&&navigator.vibrate(200);center(you.pos)}lastTurn=S.round+':'+S.turn;
+ const t=you.tk||{};$('act').innerHTML=`<span>${X?`⬛ ${t.black} black · ✖2 ${t.dbl} double`:`🚕 ${t.taxi} · 🚌 ${t.bus} · 🚇 ${t.metro}`}</span>`+(X&&mine&&S.fresh&&S.left==1&&t.dbl>0&&S.round<=M.rounds-2?'<button id="db" class="pri">Double move ✖2</button>':X&&mine&&!S.fresh?'<span>Double move: 2nd step</span>':'');
+ const db=$('db');if(db)db.onclick=()=>tx({t:'double'});
+ let di=0;$('pl').innerHTML=S.players.map(p=>{const x=p.role=='x',c=x?'#000':C[(di++)%8];return`<div class="chip ${p.id==S.turn?'on':''} ${p.on?'':'off'}" style="border-color:${x?'#fff':c}">${x?'🕶 ':''}${p.name}${p.id==me?' (you)':''}${p.on?'':' ⚠'}${x?'':`<br>${p.tk.taxi}🚕 ${p.tk.bus}🚌 ${p.tk.metro}🚇`}${KB(p)}</div>`}).join('');
+ $('log').innerHTML=Array.from({length:M.rounds},(_,i)=>{const e=S.log[i],r=M.reveal.includes(i+1);return`<div class="lg ${r?'rv':''}">${i+1}${r?'👁':''}<b>${e?IC[e.k]:''}</b>${e&&e.rev?e.rev:''}</div>`}).join('');
+ if(S.phase!='play')$('sheet').hidden=true;
+ let h='';const P=M.P;
+ if(S.trail)h+=`<polyline points="${S.trail.map(n=>P[n].x+','+P[n].y).join(' ')}" fill="none" stroke="#111" stroke-width="7" stroke-dasharray="1 14" stroke-linecap="round"/>`;
+ [...new Set(S.legal.map(m=>m.to))].forEach(n=>h+=`<circle class="pulse" cx="${P[n].x}" cy="${P[n].y}" r="32" fill="none" stroke="#ffd60a" stroke-width="7"/>`);
+ const xp=S.players.find(p=>p.role=='x');
+ if(S.seen&&xp.pos==null){const q=P[S.seen.pos];h+=`<circle cx="${q.x}" cy="${q.y}" r="30" fill="#0003" stroke="#000" stroke-width="4" stroke-dasharray="7 6"/><text x="${q.x}" y="${q.y+10}" text-anchor="middle" font-size="30" font-weight="900">?</text><text x="${q.x}" y="${q.y-40}" text-anchor="middle" class="nm" style="font-size:20px;font-weight:800">Mr. X seen @${S.seen.n}</text>`}
+ di=0;S.players.forEach(p=>{if(p.pos==null)return;const q=P[p.pos],x=p.role=='x',c=x?'#000':C[(di++)%8];
+  h+=`<circle cx="${q.x}" cy="${q.y-10}" r="26" fill="${c}" stroke="${p.id==me?'#ffd60a':'#fff'}" stroke-width="5"/><text x="${q.x}" y="${q.y-1}" text-anchor="middle" font-size="26" font-weight="900" fill="#fff">${x?'X':p.name[0].toUpperCase()}</text>`});
+ $('dyn').innerHTML=h;
+ const E=$('end');E.hidden=S.phase!='over';if(S.phase=='over'){const iw=(S.winner=='x')==X;
+  E.innerHTML=`<h2>${S.winner=='x'?'🕶 Mr. X wins!':'🕵 Detectives win!'}</h2><p style="font-size:20px">${S.why}</p><p>${iw?'🎉 Your side won!':'Better luck next time.'}</p>`+(S.host==me?'<button class="pri" id="ag">Play again</button>':'<small>Waiting for host…</small>')+'<button id="vm">View map</button>';
+  if($('ag'))$('ag').onclick=()=>tx({t:'again'});$('vm').onclick=()=>E.hidden=true}}
+function center(n){const w=$('mapwrap'),p=M.P[n];w.scrollTo({left:p.x*zoom-w.clientWidth/2,top:p.y*zoom-w.clientHeight/2,behavior:'smooth'})}
+conn();if('serviceWorker'in navigator&&/^https?:/.test(location.protocol)&&!window.Capacitor)navigator.serviceWorker.register('sw.js');
+</script></body></html>
