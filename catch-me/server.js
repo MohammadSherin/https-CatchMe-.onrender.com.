@@ -28,15 +28,18 @@ function roundEnd(room){const x=room.players.find(q=>q.role=='x');
  if(room.log.length>=ROUNDS)return end(room,'x','Mr. X escaped for all 24 moves!');
  if(!legal(room,x).length)return end(room,'det','Mr. X is trapped!');
  Object.assign(room,{turn:x.id,left:1,fresh:true})}
-function kick(room,host,id){const t=room.players.find(p=>p.id==id);if(!t||t==host||!(room.phase=='lobby'||!t.ws))return;
- send(t,{t:'kicked'});if(t.ws)t.ws.close();
+function drop(room,t,why){
  const ds=room.players.filter(p=>p.role=='det'),idx=ds.indexOf(t),was=room.turn==t.id;
  room.players=room.players.filter(p=>p!=t);
+ if(!room.players.length){delete rooms[room.code];return}
+ if(room.host==t.id)room.host=(room.players.find(p=>p.ws)||room.players[0]).id;
  if(room.phase=='play'){
-  if(t.role=='x'||ds.length<=1)return toLobby(room,`${t.name} was removed by the host - game stopped`);
+  if(t.role=='x'||ds.length<=1)return toLobby(room,why+' - game stopped');
   if(idx<room.di)room.di--;
   if(was&&!nextDet(room,idx)){roundEnd(room);if(room.phase!='play')return}}
  bc(room)}
+function kick(room,host,id){const t=room.players.find(p=>p.id==id);if(!t||t==host||!(room.phase!='play'&&room.phase!='over'||!t.ws))return;
+ send(t,{t:'kicked'});if(t.ws)t.ws.close();drop(room,t,`${t.name} was removed by the host`)}
 function end(room,w,why){Object.assign(room,{phase:'over',winner:w,why,turn:null});bc(room)}
 function move(room,p,to,tk){
  if(room.phase!='play'||room.turn!=p.id||!legal(room,p).some(m=>m.to==to&&m.ticket==tk))return;
@@ -71,6 +74,7 @@ wss.on('connection',ws=>{
   else if(m.t=='double'&&pl.role=='x'&&room.turn==pl.id&&room.fresh&&room.left==1&&pl.tk.dbl>0&&room.log.length<=ROUNDS-2){pl.tk.dbl--;room.left=2;bc(room)}
   else if(m.t=='again'&&pl.id==room.host&&room.phase=='over')toLobby(room,'');
   else if(m.t=='kick'&&pl.id==room.host)kick(room,pl,m.id);
+  else if(m.t=='leave'){const r=room,p=pl;room=null;pl=null;drop(r,p,`${p.name} left`)}
  });
  ws.on('close',()=>{if(!pl||pl.ws!==ws)return;pl.ws=null;const r=room;bc(r);
   setTimeout(()=>{if(r.phase=='lobby'&&!pl.ws){r.players=r.players.filter(p=>p!=pl);if(r.host==pl.id&&r.players[0])r.host=r.players[0].id;bc(r)}
