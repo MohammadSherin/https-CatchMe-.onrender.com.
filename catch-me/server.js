@@ -55,7 +55,7 @@ function move(room,p,to,tk){
  }
  bc(room)}
 wss.on('connection',ws=>{
- ws.send(JSON.stringify({t:'map',P:M.P,edges:M.edges,W:M.W,H:M.H,reveal:REVEAL,rounds:ROUNDS}));
+ ws.send(JSON.stringify({t:'map',...M.view,reveal:REVEAL,rounds:ROUNDS}));
  ws.dead=false;ws.on('pong',()=>ws.dead=false);let room,pl;const err=(msg,fatal)=>ws.send(JSON.stringify({t:'err',msg,fatal}));
  const joined=()=>{send(pl,{t:'hello',pid:pl.id,code:room.code});bc(room)};
  ws.on('message',d=>{let m;try{m=JSON.parse(d)}catch{return}

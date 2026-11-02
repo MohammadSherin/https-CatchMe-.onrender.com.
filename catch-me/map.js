@@ -41,4 +41,6 @@ for(const[n,a]of[['Sanjay Gandhi Park',1],['Aarey Forest',4],['Mahim Nature Park
 for(let i=cand.length-1;i>0;i--){const j=rnd()*(i+1)|0;[cand[i],cand[j]]=[cand[j],cand[i]]}
 for(const c of cand){if(parks.length>=30)break;if(free(c,PR(c)))parks.push({x:c.x,y:c.y,r:PR(c)})}
 const icons={44:'🏛️',39:'🚉',28:'🕌',9:'✈️',33:'🏖️',49:'🚢',46:'🌉',26:'🏙️',18:'🎬'};
-module.exports={P,adj,edges,K,parks,lakes,icons,W:Math.round(1640*KX),H:Math.round(2680*KY),XS:[2,3,7,10,17,20,25,29,32,38,48,56,60],DS:[1,4,6,8,11,12,14,16,19,22,24,27,30,34,37,41,46,51]};
+const out={P,adj,edges,K,parks,lakes,icons,W:Math.round(1640*KX),H:Math.round(2680*KY),XS:[2,3,7,10,17,20,25,29,32,38,48,56,60],DS:[1,4,6,8,11,12,14,16,19,22,24,27,30,34,37,41,46,51]};
+out.view={P,edges,K,parks,lakes,icons,W:out.W,H:out.H};
+module.exports=out;
