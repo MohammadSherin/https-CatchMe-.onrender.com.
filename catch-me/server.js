@@ -11,7 +11,7 @@ const mk=()=>{let c;do{c=Array.from({length:4},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ'[Ma
 function legal(room,p){const occ=new Set(room.players.filter(q=>q.role=='det'&&q!=p).map(q=>q.pos)),out=[];
  for(const e of M.adj[p.pos]){if(occ.has(e.to))continue;
   if(p.role=='det'){if(e.t!='ferry'&&p.tk[e.t]>0)out.push({to:e.to,ticket:e.t})}
-  else{if(e.t!='ferry')out.push({to:e.to,ticket:e.t});if(p.tk.black>0)out.push({to:e.to,ticket:'black'})}}
+  else{if(e.t!='ferry')out.push({to:e.to,ticket:e.t});if(p.tk.black>0)out.push({to:e.to,ticket:e.t=='ferry'?'ferry':'black'})}}
  return out}
 function view(room,me){const over=room.phase=='over';
  return{t:'state',code:room.code,phase:room.phase,host:room.host,turn:room.turn,left:room.left,fresh:room.fresh,winner:room.winner,why:room.why,log:room.log,seen:room.seen,round:room.log.length,me:me.id,
@@ -19,7 +19,7 @@ function view(room,me){const over=room.phase=='over';
   legal:room.phase=='play'&&room.turn==me.id?legal(room,me):[],trail:over?room.trail:null,notice:room.notice||''}}
 const bc=room=>room.players.forEach(p=>send(p,view(room,p)));
 function start(room){const ps=room.players,xi=Math.random()*ps.length|0,xs=sh(M.XS),ds=sh(M.DS),nd=ps.length-1;let k=0;
- ps.forEach((p,i)=>{if(i==xi){p.role='x';p.pos=xs[0];p.tk={black:Math.max(4,nd),dbl:2}}else{p.role='det';p.pos=ds[k++];p.tk={taxi:10,bus:8,metro:4}}});
+ ps.forEach((p,i)=>{if(i==xi){p.role='x';p.pos=xs[0];p.tk={black:Math.max(5,nd),dbl:2}}else{p.role='det';p.pos=ds[k++];p.tk={taxi:10,bus:8,metro:4}}});
  Object.assign(room,{notice:'',phase:'play',log:[],seen:null,left:1,fresh:true,turn:ps[xi].id,winner:null,why:'',trail:[ps[xi].pos],di:0})}
 function nextDet(room,i){const ds=room.players.filter(q=>q.role=='det');
  for(;i<ds.length;i++)if(legal(room,ds[i]).length){room.turn=ds[i].id;room.di=i;return true}return false}
@@ -45,7 +45,7 @@ function move(room,p,to,tk){
  if(room.phase!='play'||room.turn!=p.id||!legal(room,p).some(m=>m.to==to&&m.ticket==tk))return;
  const x=room.players.find(q=>q.role=='x');
  if(p.role=='x'){
-  if(tk=='black')p.tk.black--;
+  if(tk=='black'||tk=='ferry')p.tk.black--;
   p.pos=to;room.trail.push(to);room.fresh=false;
   const e={k:tk,rev:null};room.log.push(e);
   if(REVEAL.includes(room.log.length)){e.rev=to;room.seen={pos:to,n:room.log.length}}
