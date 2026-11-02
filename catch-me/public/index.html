@@ -23,7 +23,7 @@ button{padding:14px;border-radius:12px;border:0;background:#2b3d5c;color:#fff;fo
 #sheet,#end{position:fixed;left:0;right:0;bottom:0;background:#16253dF2;padding:18px 18px calc(18px + env(safe-area-inset-bottom));border-radius:20px 20px 0 0;display:flex;flex-direction:column;gap:10px;box-shadow:0 -6px 30px #000a;z-index:5}
 #end{top:0;border-radius:0;justify-content:center;text-align:center;background:#0f1b2dEE}#end h2{font-size:34px;margin:0;color:#ffd60a}
 .pulse{transform-box:fill-box;transform-origin:center;animation:pu 1s infinite}@keyframes pu{50%{transform:scale(1.35);opacity:.5}}@keyframes pl{50%{transform:scale(1.06)}}
-.nd{cursor:pointer}.gn{display:none}.z .gn{display:inline}#toast{position:fixed;top:calc(10px + env(safe-area-inset-top));left:12px;right:12px;background:#ffd60a;color:#111;padding:12px;border-radius:12px;font-weight:700;text-align:center;z-index:9}.nm{font-size:15px;fill:#222;paint-order:stroke;stroke:#fffc;stroke-width:3px;font-weight:600}
+.nd{cursor:pointer}.gn{display:none}.z .gn{display:inline}#toast{position:fixed;top:calc(10px + env(safe-area-inset-top));left:12px;right:12px;background:#ffd60a;color:#111;padding:12px;border-radius:12px;font-weight:700;text-align:center;z-index:9}.pk{font-size:17px;font-weight:800;font-style:italic;fill:#1d5a2b;paint-order:stroke;stroke:#fffd;stroke-width:4px}.nm{font-size:15px;fill:#222;paint-order:stroke;stroke:#fffc;stroke-width:3px;font-weight:600}
 </style></head><body>
 <div id="home" class="scr"><h1>CATCH ME</h1><p class="sub">Chase Mr. X through the streets of Mumbai</p>
 <input id="nm" placeholder="Your name" maxlength="14"><button id="cr" class="pri">Create room</button><div class="or">— or join friends —</div>
@@ -37,7 +37,7 @@ button{padding:14px;border-radius:12px;border:0;background:#2b3d5c;color:#fff;fo
 <script src="config.js"></script>
 <script>const $=id=>document.getElementById(id),C=['#e53935','#1e88e5','#43a047','#fb8c00','#8e24aa','#00acc1','#f4511e','#6d4c41'];
 const IC={taxi:'🚕',bus:'🚌',metro:'🚇',black:'⬛'},LB={taxi:'Taxi',bus:'Bus',metro:'Metro',black:'Black ticket'};
-let cenKey,ws,M,S,me=localStorage.pid,zoom=.7,lastTurn,lastNote;const SU=(window.SERVER_URL||'').replace(/\/$/,'');
+let cenKey,ws,M,S,me=localStorage.pid,zoom=.46,lastTurn,lastNote;const SU=(window.SERVER_URL||'').replace(/\/$/,'');
 const tx=m=>ws&&ws.readyState==1&&ws.send(JSON.stringify(m));
 function toast(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(e.t);e.t=setTimeout(()=>e.hidden=true,4500)}
 window.onerror=m=>toast('Error: '+m);
@@ -56,15 +56,54 @@ $('cr').onclick=()=>tx({t:'create',name:nm()});$('jn').onclick=()=>tx({t:'join',
 $('st').onclick=()=>tx({t:'start'});$('zi').onclick=()=>zm(1.25);$('zo').onclick=()=>zm(.8);
 $('zc').onclick=()=>{const p=S&&S.players.find(p=>p.id==me);p&&p.pos&&center(p.pos)};
 $('sh').onclick=()=>{const u=(SU?SU.replace(/^ws/,'http'):location.origin)+'/?room='+S.code,t=`Join my Catch Me game! Code: ${S.code}`;navigator.share?navigator.share({title:'Catch Me',text:t,url:u}):navigator.clipboard.writeText(t+' '+u)};
-function zm(f){zoom=Math.min(2.2,Math.max(.35,zoom*f));const v=$('svg');v.style.width=M.W*zoom+'px';v.style.height=M.H*zoom+'px';v.classList.toggle('z',zoom>=1.1)}
-function base(){const P=M.P,ids=Object.keys(P),has={};M.edges.forEach(e=>[e.a,e.b].forEach(n=>(has[n]=has[n]||new Set).add(e.t)));
- let h=`<rect width="${M.W}" height="${M.H}" fill="#3a86b4"/><g fill="#cdbf93">${ids.map(i=>`<circle cx="${P[i].x}" cy="${P[i].y}" r="116"/>`).join('')}</g><g fill="#ecdfba">${ids.map(i=>`<circle cx="${P[i].x}" cy="${P[i].y}" r="104"/>`).join('')}</g>`;
- const st={ferry:['#1565c0',5,'14 10'],metro:['#d62839',13,''],bus:['#2e9e4f',8,''],taxi:['#3b3b3b',3,'']};
- for(const t of['ferry','metro','bus','taxi'])M.edges.filter(e=>e.t==t).forEach(e=>h+=`<line x1="${P[e.a].x}" y1="${P[e.a].y}" x2="${P[e.b].x}" y2="${P[e.b].y}" stroke="${st[t][0]}" stroke-width="${st[t][1]}" stroke-dasharray="${st[t][2]}" stroke-linecap="round"/>`);
+function zm(f){zoom=Math.min(1.8,Math.max(.25,zoom*f));const v=$('svg');v.style.width=M.W*zoom+'px';v.style.height=M.H*zoom+'px';v.classList.toggle('z',zoom>=1.1)}
+function rg(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function base(){const P=M.P,ids=Object.keys(P),has={},K=M.K,R=Math.round(104*K),W=M.W,H=M.H,pk=M.parks||[],lk=M.lakes||[];
+ M.edges.forEach(e=>[e.a,e.b].forEach(n=>(has[n]=has[n]||new Set).add(e.t)));
+ const rn=rg(20261102),f=n=>Math.round(n*10)/10;
+ const near=(x,y)=>{let m=1e9;for(const i of ids){const a=P[i].x-x,b=P[i].y-y,d=a*a+b*b;if(d<m)m=d}return Math.sqrt(m)};
+ const circ=(x,y,r)=>`M${f(x-r)} ${f(y)}a${f(r)} ${f(r)} 0 1 0 ${f(2*r)} 0a${f(r)} ${f(r)} 0 1 0 ${f(-2*r)} 0`;
+ const ell=(x,y,a,b)=>`M${f(x-a)} ${f(y)}a${f(a)} ${f(b)} 0 1 0 ${f(2*a)} 0a${f(a)} ${f(b)} 0 1 0 ${f(-2*a)} 0`;
+ const rect=(x,y,w,h)=>`M${f(x)} ${f(y)}h${f(w)}v${f(h)}h${f(-w)}z`;
+ const pt=(d,a)=>d?`<path d="${d}" ${a}/>`:'';
+ const lay=(r,c)=>`<g fill="${c}">${ids.map(i=>`<circle cx="${P[i].x}" cy="${P[i].y}" r="${r}"/>`).join('')}</g>`;
+ const ring=(r,c,w,da,o)=>`<g fill="none" stroke="${c}" stroke-width="${w}" stroke-dasharray="${da}" stroke-opacity="${o}" stroke-linecap="round">${ids.map(i=>`<circle cx="${P[i].x}" cy="${P[i].y}" r="${r}"/>`).join('')}</g>`;
+ let sp='',sd='';for(let k=0;k<520;k++){const x=rn()*W,y=rn()*H,l=10+rn()*18;const w=`M${f(x)} ${f(y)}q${f(l/2)} -5 ${f(l)} 0`;if(k%3)sp+=w;else sd+=w}
+ let h=`<defs><linearGradient id="sea" x1="0" y1="0" x2=".4" y2="1"><stop offset="0" stop-color="#2fb4d8"/><stop offset=".5" stop-color="#1f8fc6"/><stop offset="1" stop-color="#1673ab"/></linearGradient>
+<pattern id="w1" width="190" height="120" patternUnits="userSpaceOnUse" patternTransform="rotate(-6)"><path d="M0 22q15-10 30 0t30 0 30 0M80 76q13-9 26 0t26 0 26 0M120 40q11-7 22 0t22 0" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="2.4"/></pattern>
+<pattern id="w2" width="250" height="160" patternUnits="userSpaceOnUse" patternTransform="rotate(8)"><path d="M20 44q17-11 34 0t34 0M140 120q15-9 30 0t30 0M170 30q11-7 22 0t22 0" fill="none" stroke="#0a4f82" stroke-opacity=".2" stroke-width="3"/></pattern>
+<radialGradient id="lk"><stop offset="0" stop-color="#86dbf0"/><stop offset="1" stop-color="#3aa6d2"/></radialGradient></defs>
+<rect width="${W}" height="${H}" fill="url(#sea)"/><rect width="${W}" height="${H}" fill="url(#w1)"/><rect width="${W}" height="${H}" fill="url(#w2)"/>`+
+ pt(sp,'fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2.6" stroke-linecap="round"')+pt(sd,'fill="none" stroke="#0a4f82" stroke-opacity=".25" stroke-width="2.6" stroke-linecap="round"')+
+ lay(R+125,'#3a9fd0')+lay(R+96,'#4db1d9')+lay(R+70,'#63c4e2')+ring(R+58,'#fff',2.5,'24 16 6 16',.4)+lay(R+48,'#80d5ea')+lay(R+30,'#a4e5f1')+ring(R+24,'#fff',4,'34 12 10 12',.85)+lay(R+14,'#f8feff')+lay(R+8,'#d9c68d')+lay(R+3,'#efe2b6')+lay(R,'#e9dcb6');
+ const inP=(x,y)=>pk.some(p=>Math.hypot(p.x-x,p.y-y)<p.r*1.45+12)||lk.some(l=>Math.hypot(l.x-x,l.y-y)<Math.max(l.rx,l.ry)*1.2+34);
+ const cols=['#d9a07a','#e6bd8c','#c98a6a','#db9484','#cdbfae','#e9d0a2','#b8a48e'],bd=cols.map(()=>''),S=60;let sh='',hl='',st='';
+ for(let gy=S/2;gy<H;gy+=S)for(let gx=S/2;gx<W;gx+=S){const x=gx+(rn()-.5)*14,y=gy+(rn()-.5)*14;if(near(x,y)>R-14||inP(x,y))continue;const r=rn();
+  if(r<.09){st+=circ(x,y,5+rn()*3);continue}if(r<.15)continue;
+  const w=30+rn()*24,hh=28+rn()*24,bx=x-w/2,by=y-hh/2,c=((gx/430|0)+(gy/470|0)*2+(rn()<.3?rn()*7|0:0))%7;
+  bd[c]+=rect(bx,by,w,hh);sh+=rect(bx+4,by+5,w,hh);hl+=rect(bx+2,by+2,w*.55,4)}
+ h+=pt(sh,'fill="#5a3a20" fill-opacity=".3"')+bd.map((d,i)=>pt(d,`fill="${cols[i]}"`)).join('')+pt(hl,'fill="#fff" fill-opacity=".4"')+pt(st,'fill="#5aa84c"');
+ let bl='',pl='',pdk='',pp='',ts='',tc='',th='',po='',lb='';
+ pk.forEach((p,i)=>{const r=rg(i*977+13),q=p.r,big=/Forest|Sanjay/.test(p.n||'');bl+=circ(p.x,p.y,q);
+  for(let k=0;k<3;k++){const a=r()*6.28;bl+=circ(p.x+Math.cos(a)*q*.62,p.y+Math.sin(a)*q*.62,q*.6)}
+  for(let k=0;k<8;k++){const a=r()*6.28,d=r()*q*.7,e=ell(p.x+Math.cos(a)*d,p.y+Math.sin(a)*d,q*(.18+r()*.22),q*(.1+r()*.12));if(k%2)pl+=e;else pdk+=e}
+  pp+=`M${f(p.x-q*.85)} ${f(p.y+q*.3)}Q${f(p.x-q*.1)} ${f(p.y-q*.6)} ${f(p.x+q*.85)} ${f(p.y-q*.05)}`;if(q>60)pp+=`M${f(p.x-q*.2)} ${f(p.y+q*.9)}Q${f(p.x+q*.1)} ${f(p.y+q*.2)} ${f(p.x+q*.7)} ${f(p.y+q*.55)}`;
+  const n=Math.max(7,Math.round(q*q/(big?170:300)));for(let k=0;k<n;k++){const a=r()*6.28,d=Math.sqrt(r())*q*.92,x=p.x+Math.cos(a)*d,y=p.y+Math.sin(a)*d,s=(big?9:6.5)+r()*(big?5:4);ts+=circ(x+4,y+5,s);tc+=circ(x,y,s);th+=circ(x-s*.3,y-s*.35,s*.5)}
+  if(i%3==1)po+=`<path d="${ell(p.x+q*.22,p.y+q*.28,q*.3,q*.18)}" fill="url(#lk)" stroke="#eaf9ff" stroke-width="3"/>`;
+  if(p.n)lb+=`<text class="pk" x="${p.x}" y="${p.y+q+26}" text-anchor="middle">${p.n}</text>`});
+ h+=pt(bl,'fill="#e8dcae" stroke="#e8dcae" stroke-width="16" stroke-linejoin="round"')+pt(bl,'fill="#5b9c43" stroke="#5b9c43" stroke-width="8"')+pt(bl,'fill="#86c65e"')+pt(pdk,'fill="#6aa94a" fill-opacity=".55"')+pt(pl,'fill="#a6dd78" fill-opacity=".6"')+
+  pt(pp,'fill="none" stroke="#c9b27a" stroke-width="8" stroke-linecap="round"')+pt(pp,'fill="none" stroke="#f5ebc7" stroke-width="4" stroke-linecap="round"')+po+
+  pt(ts,'fill="#1d4f26" fill-opacity=".38"')+pt(tc,'fill="#2f7d3b"')+pt(th,'fill="#6cc15c"')+lb;
+ lk.forEach(l=>h+=`<ellipse cx="${l.x}" cy="${l.y}" rx="${l.rx+14}" ry="${l.ry+14}" fill="#e8dcae"/><ellipse cx="${l.x}" cy="${l.y}" rx="${l.rx+7}" ry="${l.ry+7}" fill="#6fae52"/><ellipse cx="${l.x}" cy="${l.y}" rx="${l.rx}" ry="${l.ry}" fill="url(#lk)" stroke="#f3fdff" stroke-width="3"/><path d="M${l.x-l.rx*.6} ${l.y-l.ry*.15}q${l.rx*.2}-9 ${l.rx*.4} 0t${l.rx*.4} 0 ${l.rx*.4} 0M${l.x-l.rx*.3} ${l.y+l.ry*.35}q${l.rx*.15}-7 ${l.rx*.3} 0t${l.rx*.3} 0" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="3"/><text class="pk" x="${l.x}" y="${l.y+l.ry+40}" text-anchor="middle" style="fill:#14607f">${l.n}</text>`);
+ const seg=e=>`M${P[e.a].x} ${P[e.a].y}L${P[e.b].x} ${P[e.b].y}`,by=t=>M.edges.filter(e=>e.t==t),ps=(es,c,w)=>pt(es.map(seg).join(''),`fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`);
+ const T=by('taxi'),B=by('bus'),Mt=by('metro');
+ h+=ps(T,'#9c8153',21)+ps(T,'#fff3cf',16)+ps(Mt,'#fff',18)+ps(Mt,'#d62839',13)+ps(B,'#fff',13)+ps(B,'#2e9e4f',8)+ps(T,'#6b5a3a',3);
+ by('ferry').forEach(e=>{const a=P[e.a],b=P[e.b],mx=(a.x+b.x)/2,my=(a.y+b.y)/2,dx=b.x-a.x,dy=b.y-a.y,cx=mx-dy*.14,cy=my+dx*.14;
+  h+=`<path d="M${a.x} ${a.y}Q${f(cx)} ${f(cy)} ${b.x} ${b.y}" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-opacity=".8"/><path d="M${a.x} ${a.y}Q${f(cx)} ${f(cy)} ${b.x} ${b.y}" fill="none" stroke="#1565c0" stroke-width="5" stroke-dasharray="16 11" stroke-linecap="round"/><text x="${f((a.x+2*cx+b.x)/4)}" y="${f((a.y+2*cy+b.y)/4+10)}" text-anchor="middle" font-size="34">⛴️</text>`});
  ids.forEach(i=>{const p=P[i],s=has[i]||new Set,dot=(c,dx,dy)=>`<circle cx="${p.x+dx}" cy="${p.y+dy}" r="8" fill="${c}" stroke="#fff" stroke-width="2"/>`;
-  h+=`<g class="nd" data-n="${i}"><circle cx="${p.x}" cy="${p.y}" r="32" fill="#fff0"/><circle cx="${p.x}" cy="${p.y}" r="21" fill="#fff" stroke="#222" stroke-width="3"/><text x="${p.x}" y="${p.y+6}" text-anchor="middle" font-size="17" font-weight="800">${i}</text>`+
-  (s.has('metro')?dot('#d62839',-18,-18):'')+(s.has('bus')?dot('#2e9e4f',18,-18):'')+(s.has('ferry')?dot('#1565c0',0,24):'')+`<text class="nm ${i>66?'gn':''}" x="${p.x}" y="${p.y+42}" text-anchor="middle">${p.n}</text></g>`});
- const v=$('svg');v.setAttribute('viewBox',`0 0 ${M.W} ${M.H}`);v.innerHTML=h+'<g id="dyn" style="pointer-events:none"></g>';zm(1);
+  h+=`<g class="nd" data-n="${i}"><circle cx="${p.x}" cy="${p.y}" r="32" fill="#fff0"/><circle cx="${p.x+2}" cy="${p.y+4}" r="21" fill="#000" fill-opacity=".25"/><circle cx="${p.x}" cy="${p.y}" r="21" fill="#fff" stroke="#222" stroke-width="3"/><text x="${p.x}" y="${p.y+6}" text-anchor="middle" font-size="17" font-weight="800">${i}</text>`+
+  (s.has('metro')?dot('#d62839',-18,-18):'')+(s.has('bus')?dot('#2e9e4f',18,-18):'')+(s.has('ferry')?dot('#1565c0',0,24):'')+(M.icons&&M.icons[i]?`<text x="${p.x}" y="${p.y-34}" text-anchor="middle" font-size="30">${M.icons[i]}</text>`:'')+`<text class="nm ${i>66?'gn':''}" x="${p.x}" y="${p.y+42}" text-anchor="middle">${p.n}</text></g>`});
+ const v=$('svg');v.setAttribute('viewBox',`0 0 ${W} ${H}`);v.innerHTML=h+'<g id="dyn" style="pointer-events:none"></g>';zm(1);
  v.onclick=e=>{const n=e.target.closest('.nd');n&&tap(+n.dataset.n)}}
 function tap(n){if(!S||S.phase!='play'||S.turn!=me)return;const o=S.legal.filter(m=>m.to==n);if(!o.length)return;
  if(o.length==1)return tx({t:'move',to:n,ticket:o[0].ticket});
