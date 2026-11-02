@@ -13,7 +13,7 @@ button{padding:14px;border-radius:12px;border:0;background:#2b3d5c;color:#fff;fo
 .code{font-size:56px;font-weight:900;letter-spacing:10px;text-align:center;color:#ffd60a}.pr{display:flex;align-items:center;gap:10px;background:#16253d;padding:10px 14px;border-radius:12px}.dot{width:14px;height:14px;border-radius:50%}
 #game{height:100dvh;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
 #top{padding:8px 12px;background:#16253d;display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px}
-#ban{font-weight:800;padding:6px 12px;border-radius:20px;background:#2b3d5c}#ban.me{background:#ffd60a;color:#111;animation:pl 1s infinite}
+#ex{padding:6px 10px;font-size:14px;background:#8b2635}#ban{font-weight:800;padding:6px 12px;border-radius:20px;background:#2b3d5c}#ban.me{background:#ffd60a;color:#111;animation:pl 1s infinite}
 #mapwrap{flex:1;overflow:auto;position:relative;background:#3a86b4;-webkit-overflow-scrolling:touch}svg{display:block}
 #zm{position:fixed;right:10px;top:70px;display:flex;flex-direction:column;gap:6px}#zm button{width:42px;height:42px;padding:0;font-size:24px;opacity:.9}
 #bot{background:#16253d;padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:6px}
@@ -30,8 +30,8 @@ button{padding:14px;border-radius:12px;border:0;background:#2b3d5c;color:#fff;fo
 <input id="cd" placeholder="ROOM CODE" maxlength="4" style="text-transform:uppercase;text-align:center;letter-spacing:6px"><button id="jn">Join room</button><div id="er"></div>
 <small>Install as an app: iPhone → Share → Add to Home Screen · Android → ⋮ → Install app</small></div>
 <div id="lobby" class="scr" hidden><p class="sub">Room code</p><div class="code" id="lc"></div><button id="sh">Invite friends</button><div id="lp" style="display:flex;flex-direction:column;gap:8px"></div>
-<button id="st" class="pri">Start game</button><small id="lh">3–9 players · one of you is secretly picked as Mr. X</small></div>
-<div id="game" hidden><div id="top"><span id="info"></span><span id="ban"></span></div>
+<button id="st" class="pri">Start game</button><button id="lv">← Leave room</button><small id="lh">3–9 players · one of you is secretly picked as Mr. X</small></div>
+<div id="game" hidden><div id="top"><button id="ex">✕ Exit</button><span id="info"></span><span id="ban"></span></div>
 <div id="mapwrap"><svg id="svg" viewBox="0 0 800 1320"></svg></div><div id="zm"><button id="zi">+</button><button id="zo">−</button><button id="zc">🎯</button></div><div id="toast" hidden></div>
 <div id="bot"><div id="act"></div><div id="pl"></div><div id="log"></div></div><div id="sheet" hidden></div><div id="end" hidden></div></div>
 <script src="config.js"></script>
@@ -53,7 +53,9 @@ document.addEventListener('click',e=>{const k=e.target.dataset&&e.target.dataset
 $('cd').value=new URLSearchParams(location.search).get('room')||'';$('nm').value=localStorage.name||'';
 const nm=()=>{localStorage.name=$('nm').value.trim()||'Player';return localStorage.name};
 $('cr').onclick=()=>tx({t:'create',name:nm()});$('jn').onclick=()=>tx({t:'join',code:$('cd').value,name:nm()});
-$('st').onclick=()=>tx({t:'start'});$('zi').onclick=()=>zm(1.25);$('zo').onclick=()=>zm(.8);
+$('st').onclick=()=>tx({t:'start'});
+function leave(c){if(c&&!confirm('Leave this game? If you are Mr. X the game will stop.'))return;tx({t:'leave'});localStorage.removeItem('code');S=null;lastNote='';$('er').textContent='';$('sheet').hidden=true;render()}
+$('lv').onclick=()=>leave(0);$('ex').onclick=()=>leave(1);$('zi').onclick=()=>zm(1.25);$('zo').onclick=()=>zm(.8);
 $('zc').onclick=()=>{const p=S&&S.players.find(p=>p.id==me);p&&p.pos&&center(p.pos)};
 $('sh').onclick=()=>{const u=(SU?SU.replace(/^ws/,'http'):location.origin)+'/?room='+S.code,t=`Join my Catch Me game! Code: ${S.code}`;navigator.share?navigator.share({title:'Catch Me',text:t,url:u}):navigator.clipboard.writeText(t+' '+u)};
 function zm(f){zoom=Math.min(1.8,Math.max(.25,zoom*f));const v=$('svg');v.style.width=M.W*zoom+'px';v.style.height=M.H*zoom+'px';v.classList.toggle('z',zoom>=1.1)}
@@ -133,8 +135,8 @@ function game(){const you=S.players.find(p=>p.id==me),X=you.role=='x',mine=S.tur
   h+=`<circle cx="${q.x}" cy="${q.y-10}" r="26" fill="${c}" stroke="${p.id==me?'#ffd60a':'#fff'}" stroke-width="5"/><text x="${q.x}" y="${q.y-1}" text-anchor="middle" font-size="26" font-weight="900" fill="#fff">${x?'X':p.name[0].toUpperCase()}</text>`});
  $('dyn').innerHTML=h;
  const E=$('end');E.hidden=S.phase!='over';if(S.phase=='over'){const iw=(S.winner=='x')==X;
-  E.innerHTML=`<h2>${S.winner=='x'?'🕶 Mr. X wins!':'🕵 Detectives win!'}</h2><p style="font-size:20px">${S.why}</p><p>${iw?'🎉 Your side won!':'Better luck next time.'}</p>`+(S.host==me?'<button class="pri" id="ag">Play again</button>':'<small>Waiting for host…</small>')+'<button id="vm">View map</button>';
-  if($('ag'))$('ag').onclick=()=>tx({t:'again'});$('vm').onclick=()=>E.hidden=true}}
+  E.innerHTML=`<h2>${S.winner=='x'?'🕶 Mr. X wins!':'🕵 Detectives win!'}</h2><p style="font-size:20px">${S.why}</p><p>${iw?'🎉 Your side won!':'Better luck next time.'}</p>`+(S.host==me?'<button class="pri" id="ag">Play again</button>':'<small>Waiting for host…</small>')+'<button id="vm">View map</button><button id="mm">Main menu</button>';
+  if($('ag'))$('ag').onclick=()=>tx({t:'again'});$('vm').onclick=()=>E.hidden=true;$('mm').onclick=()=>leave(0)}}
 function center(n){const w=$('mapwrap'),p=M.P[n];w.scrollTo({left:p.x*zoom-w.clientWidth/2,top:p.y*zoom-w.clientHeight/2,behavior:'smooth'})}
 conn();if('serviceWorker'in navigator&&/^https?:/.test(location.protocol)&&!window.Capacitor)navigator.serviceWorker.register('sw.js');
 </script></body></html>
