@@ -1,4 +1,5 @@
-const http=require('http'),fs=require('fs'),path=require('path'),{WebSocketServer}=require('ws'),M=require('./map');
+const http=require('http'),fs=require('fs'),path=require('path'),{WebSocketServer}=require('ws'),MAPS=require('./map');
+const mp=room=>MAPS.maps[room.map]||MAPS.maps.mumbai;
 const REVEAL=[3,8,13,18,24],ROUNDS=24,rooms={},PUB=path.join(__dirname,'public');
 const mime={'.html':'text/html','.js':'text/javascript','.json':'application/json','.png':'image/png'};
 const srv=http.createServer((q,r)=>{const f=path.join(PUB,q.url.split('?')[0]=='/'?'index.html':q.url.split('?')[0]);
@@ -9,16 +10,16 @@ const rid=()=>Math.random().toString(36).slice(2,10),sh=a=>[...a].sort(()=>Math.
 const send=(p,m)=>p.ws&&p.ws.readyState==1&&p.ws.send(JSON.stringify(m));
 const mk=()=>{let c;do{c=Array.from({length:4},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.random()*24|0]).join('')}while(rooms[c]);return c};
 function legal(room,p){const occ=new Set(room.players.filter(q=>q.role=='det'&&q!=p).map(q=>q.pos)),out=[];
- for(const e of M.adj[p.pos]){if(occ.has(e.to))continue;
+ for(const e of mp(room).adj[p.pos]){if(occ.has(e.to))continue;
   if(p.role=='det'){if(e.t!='ferry'&&p.tk[e.t]>0)out.push({to:e.to,ticket:e.t})}
   else{if(e.t!='ferry')out.push({to:e.to,ticket:e.t});if(p.tk.black>0)out.push({to:e.to,ticket:e.t=='ferry'?'ferry':'black'})}}
  return out}
 function view(room,me){const over=room.phase=='over';
  return{t:'state',code:room.code,phase:room.phase,host:room.host,turn:room.turn,left:room.left,fresh:room.fresh,winner:room.winner,why:room.why,log:room.log,seen:room.seen,round:room.log.length,me:me.id,
   players:room.players.map(p=>({id:p.id,name:p.name,role:p.role,on:!!p.ws,pos:p.role=='x'&&!(over||p==me)?null:p.pos,tk:p.role=='x'&&!(over||p==me)?null:p.tk})),
-  legal:room.phase=='play'&&room.turn==me.id?legal(room,me):[],trail:over?room.trail:null,notice:room.notice||''}}
+  legal:room.phase=='play'&&room.turn==me.id?legal(room,me):[],trail:over?room.trail:null,notice:room.notice||'',map:room.map||'mumbai'}}
 const bc=room=>room.players.forEach(p=>send(p,view(room,p)));
-function start(room){const ps=room.players,xi=Math.random()*ps.length|0,xs=sh(M.XS),ds=sh(M.DS),nd=ps.length-1;let k=0;
+function start(room){const ps=room.players,xi=Math.random()*ps.length|0,xs=sh(mp(room).XS),ds=sh(mp(room).DS),nd=ps.length-1;let k=0;
  ps.forEach((p,i)=>{if(i==xi){p.role='x';p.pos=xs[0];p.tk={black:Math.max(5,nd),dbl:2}}else{p.role='det';p.pos=ds[k++];p.tk={taxi:10,bus:8,metro:4}}});
  Object.assign(room,{notice:'',phase:'play',log:[],seen:null,left:1,fresh:true,turn:ps[xi].id,winner:null,why:'',trail:[ps[xi].pos],di:0})}
 function nextDet(room,i){const ds=room.players.filter(q=>q.role=='det');
@@ -53,17 +54,18 @@ function move(room,p,to,tk){
   if(!nextDet(room,0))return end(room,'x','The detectives are stuck without tickets!');
  }else{
   p.tk[tk]--;p.pos=to;
-  if(to==x.pos)return end(room,'det',`${p.name} caught Mr. X at ${M.P[to].n}!`);
+  if(to==x.pos)return end(room,'det',`${p.name} caught Mr. X at ${mp(room).P[to].n}!`);
   if(!nextDet(room,room.di+1)){roundEnd(room);if(room.phase!='play')return}
  }
  bc(room)}
 wss.on('connection',ws=>{
- ws.send(JSON.stringify({t:'map',...M.view,reveal:REVEAL,rounds:ROUNDS}));
+ ws.send(JSON.stringify({t:'maps',list:MAPS.list.map(({pts,...m})=>({...m,pts}))}));
  ws.dead=false;ws.on('pong',()=>ws.dead=false);let room,pl;const err=(msg,fatal)=>ws.send(JSON.stringify({t:'err',msg,fatal}));
- const joined=()=>{send(pl,{t:'hello',pid:pl.id,code:room.code});bc(room)};
+ const mapMsg=r=>({t:'map',...mp(r).view,reveal:REVEAL,rounds:ROUNDS});
+ const joined=()=>{send(pl,{t:'hello',pid:pl.id,code:room.code});send(pl,mapMsg(room));bc(room)};
  ws.on('message',d=>{let m;try{m=JSON.parse(d)}catch{return}
   const name=String(m.name||'Player').slice(0,14);
-  if(m.t=='create'){const code=mk();room=rooms[code]={code,players:[],phase:'lobby',log:[],trail:[]};pl={id:rid(),name,ws};room.players.push(pl);room.host=pl.id;return joined()}
+  if(m.t=='create'){const code=mk();room=rooms[code]={code,map:'mumbai',players:[],phase:'lobby',log:[],trail:[]};pl={id:rid(),name,ws};room.players.push(pl);room.host=pl.id;return joined()}
   if(m.t=='join'){const r=rooms[String(m.code||'').toUpperCase()];if(!r)return err('Room not found',1);
    const old=r.players.find(p=>p.id==m.pid);
    if(old){old.ws=ws;pl=old}else{if(r.phase!='lobby')return err('Game already started');if(r.players.length>=9)return err('Room is full (max 9)');pl={id:rid(),name,ws};r.players.push(pl)}
@@ -74,6 +76,7 @@ wss.on('connection',ws=>{
   else if(m.t=='double'&&pl.role=='x'&&room.turn==pl.id&&room.fresh&&room.left==1&&pl.tk.dbl>0&&room.log.length<=ROUNDS-2){pl.tk.dbl--;room.left=2;bc(room)}
   else if(m.t=='again'&&pl.id==room.host&&room.phase=='over')toLobby(room,'');
   else if(m.t=='kick'&&pl.id==room.host)kick(room,pl,m.id);
+  else if(m.t=='setmap'&&pl.id==room.host&&room.phase=='lobby'&&MAPS.maps[m.id]){room.map=m.id;room.players.forEach(p=>send(p,mapMsg(room)));bc(room)}
   else if(m.t=='leave'){const r=room,p=pl;room=null;pl=null;drop(r,p,`${p.name} left`)}
  });
  ws.on('close',()=>{if(!pl||pl.ws!==ws)return;pl.ws=null;const r=room;bc(r);
