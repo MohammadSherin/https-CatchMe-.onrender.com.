@@ -13,7 +13,7 @@ button{padding:14px;border-radius:12px;border:0;background:#2b3d5c;color:#fff;fo
 .code{font-size:56px;font-weight:900;letter-spacing:10px;text-align:center;color:#ffd60a}.pr{display:flex;align-items:center;gap:10px;background:#16253d;padding:10px 14px;border-radius:12px}.dot{width:14px;height:14px;border-radius:50%}
 #game{height:100dvh;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
 #top{padding:8px 12px;background:#16253d;display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px}
-#ex{padding:6px 10px;font-size:14px;background:#8b2635}#ban{font-weight:800;padding:6px 12px;border-radius:20px;background:#2b3d5c}#ban.me{background:#ffd60a;color:#111;animation:pl 1s infinite}
+#mp{display:grid;grid-template-columns:1fr 1fr;gap:10px}.mc{background:#16253d;border:2px solid #2b3d5c;border-radius:14px;padding:8px;text-align:center;font-size:12px;opacity:.8}.mc.sel{border-color:#ffd60a;background:#1d3050;opacity:1}.mc svg{width:100%;height:96px;border-radius:8px;background:#2a8fc4;display:block;margin-bottom:6px}.mc b{display:block;font-size:15px;margin-bottom:2px}.mc.dis{cursor:default}#ex{padding:6px 10px;font-size:14px;background:#8b2635}#ban{font-weight:800;padding:6px 12px;border-radius:20px;background:#2b3d5c}#ban.me{background:#ffd60a;color:#111;animation:pl 1s infinite}
 #mapwrap{touch-action:none;user-select:none;-webkit-user-select:none;flex:1;overflow:auto;position:relative;background:#3a86b4;-webkit-overflow-scrolling:touch}svg{display:block}
 #zm{position:fixed;right:10px;top:70px;display:flex;flex-direction:column;gap:6px}#zm button{width:42px;height:42px;padding:0;font-size:24px;opacity:.9}
 #bot{background:#16253d;padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:6px}
@@ -29,7 +29,7 @@ button{padding:14px;border-radius:12px;border:0;background:#2b3d5c;color:#fff;fo
 <input id="nm" placeholder="Your name" maxlength="14"><button id="cr" class="pri">Create room</button><div class="or">— or join friends —</div>
 <input id="cd" placeholder="ROOM CODE" maxlength="4" style="text-transform:uppercase;text-align:center;letter-spacing:6px"><button id="jn">Join room</button><div id="er"></div>
 <small>Install as an app: iPhone → Share → Add to Home Screen · Android → ⋮ → Install app</small></div>
-<div id="lobby" class="scr" hidden><p class="sub">Room code</p><div class="code" id="lc"></div><button id="sh">Invite friends</button><div id="lp" style="display:flex;flex-direction:column;gap:8px"></div>
+<div id="lobby" class="scr" hidden><p class="sub">Room code</p><div class="code" id="lc"></div><button id="sh">Invite friends</button><div id="mp"></div><div id="lp" style="display:flex;flex-direction:column;gap:8px"></div>
 <button id="st" class="pri">Start game</button><button id="lv">← Leave room</button><small id="lh">3–9 players · one of you is secretly picked as Mr. X</small></div>
 <div id="game" hidden><div id="top"><button id="ex">✕ Exit</button><span id="info"></span><span id="ban"></span></div>
 <div id="mapwrap"><svg id="svg" viewBox="0 0 800 1320"></svg></div><div id="zm"><button id="zi">+</button><button id="zo">−</button><button id="zc">🎯</button></div><div id="toast" hidden></div>
@@ -44,12 +44,12 @@ window.onerror=m=>toast('Error: '+m);
 function conn(){if(ws&&ws.readyState<2)return;ws=new WebSocket(SU?SU.replace(/^http/,'ws'):(location.protocol=='https:'?'wss://':'ws://')+location.host);
  ws.onopen=()=>{if(localStorage.code&&me)tx({t:'join',code:localStorage.code,pid:me,name:localStorage.name})};
  ws.onmessage=e=>{const m=JSON.parse(e.data);on[m.t]&&on[m.t](m)};ws.onclose=()=>setTimeout(conn,1500)}
-const on={map:m=>{M=m;base()},hello:m=>{me=m.pid;localStorage.pid=me;localStorage.code=m.code},
+let MAPLIST=[];const on={maps:m=>{MAPLIST=m.list;if(S&&S.phase=='lobby')lobby()},map:m=>{if(M&&M.id==m.id)return;M=m;base()},hello:m=>{me=m.pid;localStorage.pid=me;localStorage.code=m.code},
  err:m=>{$('er').textContent=m.msg;if(m.fatal){localStorage.removeItem('code');S=null;render()}},
  kicked:()=>{localStorage.removeItem('code');S=null;render();toast('You were removed from the room by the host')},
  state:s=>{S=s;if(s.notice&&s.notice!=lastNote)toast(s.notice);lastNote=s.notice;render()}};
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)conn()});
-document.addEventListener('click',e=>{const k=e.target.dataset&&e.target.dataset.kick;if(k&&confirm('Remove this player from the room?'))tx({t:'kick',id:k})});
+document.addEventListener('click',e=>{const mc=e.target.closest&&e.target.closest('.mc');if(mc&&S&&S.phase=='lobby'&&S.host==me&&S.map!=mc.dataset.map)tx({t:'setmap',id:mc.dataset.map});const k=e.target.dataset&&e.target.dataset.kick;if(k&&confirm('Remove this player from the room?'))tx({t:'kick',id:k})});
 $('cd').value=new URLSearchParams(location.search).get('room')||'';$('nm').value=localStorage.name||'';
 const nm=()=>{localStorage.name=$('nm').value.trim()||'Player';return localStorage.name};
 $('cr').onclick=()=>tx({t:'create',name:nm()});$('jn').onclick=()=>tx({t:'join',code:$('cd').value,name:nm()});
@@ -79,7 +79,67 @@ function zm(f){const w=$('mapwrap');zoomAt(zoom*f,w.clientWidth/2,w.clientHeight
  w.addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();const r=rel(e);zoomAt(zoom*Math.exp(-e.deltaY*.01),r.x,r.y)},{passive:false});
  ['gesturestart','gesturechange'].forEach(n=>document.addEventListener(n,e=>e.preventDefault()))})();
 function rg(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-function base(){const P=M.P,ids=Object.keys(P),has={},K=M.K||M.W/1640*.892,R=Math.round(104*K),W=M.W,H=M.H,pk=M.parks||[],lk=M.lakes||[];
+function basePoly(){const P=M.P,ids=Object.keys(P),W=M.W,H=M.H,has={},rn=rg(20261103),KK=M.mask;
+ M.edges.forEach(e=>[e.a,e.b].forEach(n=>(has[n]=has[n]||new Set).add(e.t)));
+ const f=n=>Math.round(n*10)/10,pr=a=>{const o=[];for(let i=0;i<a.length;i+=2)o.push([a[i],a[i+1]]);return o};
+ const dpl=(x,y,p)=>{if(p.length==1)return Math.hypot(x-p[0][0],y-p[0][1]);let m=1e9;for(let i=0;i<p.length-1;i++){const a=p[i],b=p[i+1],dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy||1,t=Math.max(0,Math.min(1,((x-a[0])*dx+(y-a[1])*dy)/l));m=Math.min(m,Math.hypot(x-a[0]-t*dx,y-a[1]-t*dy))}return m};
+ const pip=(x,y,pg)=>{let c=false;for(let i=0,j=pg.length-1;i<pg.length;j=i++){const[a,b]=pg[i],[p,q]=pg[j];if((b>y)!=(q>y)&&x<(p-a)*(y-b)/(q-b)+a)c=!c}return c};
+ const poly=pr(KK.poly),caps=KK.caps.map(c=>({p:pr(c.p),r:c.r})),wat=KK.waters.map(w=>({p:pr(w.p),w:w.w}));
+ const onLand=(x,y)=>pip(x,y,poly)||caps.some(c=>dpl(x,y,c.p)<=c.r),inW=(x,y,m)=>wat.some(w=>dpl(x,y,w.p)<w.w/2+m)||KK.lakes.some(l=>((x-l[0])/(l[2]+m))**2+((y-l[1])/(l[3]+m))**2<1);
+ const near=(x,y)=>{let m=1e9;for(const i of ids){const a=P[i].x-x,b=P[i].y-y,d=a*a+b*b;if(d<m)m=d}return Math.sqrt(m)};
+ const circ=(x,y,r)=>`M${f(x-r)} ${f(y)}a${f(r)} ${f(r)} 0 1 0 ${f(2*r)} 0a${f(r)} ${f(r)} 0 1 0 ${f(-2*r)} 0`,ell=(x,y,a,b)=>`M${f(x-a)} ${f(y)}a${f(a)} ${f(b)} 0 1 0 ${f(2*a)} 0a${f(a)} ${f(b)} 0 1 0 ${f(-2*a)} 0`,rect=(x,y,w,h)=>`M${f(x)} ${f(y)}h${f(w)}v${f(h)}h${f(-w)}z`,pt=(d,a)=>d?`<path d="${d}" ${a}/>`:'';
+ const EX=[125,96,70,48,30,14,8,3],CL=['#36a9d0','#4cbddb','#68cde4','#86dbea','#ace9f1','#f8feff','#d9c68d','#efe2b6'];
+ const layer=(ex,c)=>`<path d="${M.land.poly}" fill="${c}" stroke="${c}" stroke-width="${ex*2}" stroke-linejoin="round"/>`+Object.entries(M.land.lines).map(([r,d])=>`<path d="${d}" fill="none" stroke="${c}" stroke-width="${2*(+r+ex)}" stroke-linecap="round" stroke-linejoin="round"/>`).join('');
+ let sp='',sd='';for(let k=0;k<620;k++){const x=rn()*W,y=rn()*H,l=10+rn()*18,w=`M${f(x)} ${f(y)}q${f(l/2)} -5 ${f(l)} 0`;if(k%3)sp+=w;else sd+=w}
+ let h=`<defs><linearGradient id="sea" x1="0" y1="0" x2=".4" y2="1"><stop offset="0" stop-color="#27bcd8"/><stop offset=".5" stop-color="#1c97c9"/><stop offset="1" stop-color="#1678b0"/></linearGradient>
+<pattern id="w1" width="190" height="120" patternUnits="userSpaceOnUse" patternTransform="rotate(-6)"><path d="M0 22q15-10 30 0t30 0 30 0M80 76q13-9 26 0t26 0 26 0M120 40q11-7 22 0t22 0" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="2.4"/></pattern>
+<pattern id="w2" width="250" height="160" patternUnits="userSpaceOnUse" patternTransform="rotate(8)"><path d="M20 44q17-11 34 0t34 0M140 120q15-9 30 0t30 0M170 30q11-7 22 0t22 0" fill="none" stroke="#0a4f82" stroke-opacity=".2" stroke-width="3"/></pattern>
+<pattern id="dn" width="170" height="110" patternUnits="userSpaceOnUse"><rect width="170" height="110" fill="#ecdcae"/><path d="M0 30q42-18 85 0t85 0M0 84q38-16 76 0t80 0" fill="none" stroke="#d6c08a" stroke-opacity=".6" stroke-width="3"/></pattern>
+<radialGradient id="lk"><stop offset="0" stop-color="#86dbf0"/><stop offset="1" stop-color="#3aa6d2"/></radialGradient>
+<radialGradient id="bg"><stop offset="0" stop-color="#ffe9a8" stop-opacity=".9"/><stop offset="1" stop-color="#ffe9a8" stop-opacity="0"/></radialGradient>
+<linearGradient id="bt" x1="0" x2="1"><stop offset="0" stop-color="#f6fbff"/><stop offset=".55" stop-color="#b4cadf"/><stop offset="1" stop-color="#6786a4"/></linearGradient></defs>
+<rect width="${W}" height="${H}" fill="url(#sea)"/><rect width="${W}" height="${H}" fill="url(#w1)"/><rect width="${W}" height="${H}" fill="url(#w2)"/>`+
+  pt(sp,'fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2.6" stroke-linecap="round"')+pt(sd,'fill="none" stroke="#0a4f82" stroke-opacity=".25" stroke-width="2.6" stroke-linecap="round"');
+ (M.world||[]).forEach(w=>h+=`<circle cx="${w[0]}" cy="${w[1]}" r="${w[2]+34}" fill="#8adeec"/><circle cx="${w[0]}" cy="${w[1]}" r="${w[2]+14}" fill="#f8feff"/><circle cx="${w[0]}" cy="${w[1]}" r="${w[2]+6}" fill="#d9c68d"/><circle cx="${w[0]}" cy="${w[1]}" r="${w[2]}" fill="#efe2b6"/>`);
+ EX.forEach((e,i)=>h+=layer(e,CL[i]));
+ h+=`<path d="${M.land.poly}" fill="url(#dn)"/>`+Object.entries(M.land.lines).map(([r,d])=>`<path d="${d}" fill="none" stroke="#ecdcae" stroke-width="${2*r}" stroke-linecap="round" stroke-linejoin="round"/>`+(+r<=14?`<path d="${d}" fill="none" stroke="#fbf4e1" stroke-width="${r*1.1}" stroke-dasharray="6 4"/>`:'')).join('');
+ const pk=M.parks||[],lk=M.lakes||[],inP=(x,y)=>pk.some(p=>Math.hypot(p.x-x,p.y-y)<p.r*1.45+12);
+ const cols=['#d9d2c3','#e8e1d2','#c9bda2','#b5c0c8','#cfc3ad','#e7d7ae','#a7b4bd'],bd=cols.map(()=>''),S=60;let sh='',hl='',st='';
+ for(let gy=S/2;gy<H;gy+=S)for(let gx=S/2;gx<W;gx+=S){const x=gx+(rn()-.5)*14,y=gy+(rn()-.5)*14;if(near(x,y)>140||!onLand(x,y)||inW(x,y,18)||inP(x,y))continue;const r=rn();
+  if(r<.09){st+=circ(x,y,5+rn()*3);continue}if(r<.16)continue;
+  const w=30+rn()*24,hh=28+rn()*24,bx=x-w/2,by=y-hh/2,c=((gx/430|0)+(gy/470|0)*2+(rn()<.3?rn()*7|0:0))%7;
+  bd[c]+=rect(bx,by,w,hh);sh+=rect(bx+4,by+5,w,hh);hl+=rect(bx+2,by+2,w*.55,4)}
+ h+=pt(sh,'fill="#5a3a20" fill-opacity=".3"')+bd.map((d,i)=>pt(d,`fill="${cols[i]}"`)).join('')+pt(hl,'fill="#fff" fill-opacity=".5"')+pt(st,'fill="#5aa84c"');
+ let bl='',pl='',pdk='',pp='',ts='',tc='',th='',po='',lb='';
+ pk.forEach((p,i)=>{const r=rg(i*977+13),q=p.r;bl+=circ(p.x,p.y,q);for(let k=0;k<3;k++){const a=r()*6.28;bl+=circ(p.x+Math.cos(a)*q*.62,p.y+Math.sin(a)*q*.62,q*.6)}
+  for(let k=0;k<8;k++){const a=r()*6.28,d=r()*q*.7,e=ell(p.x+Math.cos(a)*d,p.y+Math.sin(a)*d,q*(.18+r()*.22),q*(.1+r()*.12));if(k%2)pl+=e;else pdk+=e}
+  pp+=`M${f(p.x-q*.85)} ${f(p.y+q*.3)}Q${f(p.x-q*.1)} ${f(p.y-q*.6)} ${f(p.x+q*.85)} ${f(p.y-q*.05)}`;
+  const n=Math.max(7,Math.round(q*q/300));for(let k=0;k<n;k++){const a=r()*6.28,d=Math.sqrt(r())*q*.92,x=p.x+Math.cos(a)*d,y=p.y+Math.sin(a)*d,s=6.5+r()*4;ts+=circ(x+4,y+5,s);tc+=circ(x,y,s);th+=circ(x-s*.3,y-s*.35,s*.5)}
+  if(i%3==1)po+=`<path d="${ell(p.x+q*.22,p.y+q*.28,q*.3,q*.18)}" fill="url(#lk)" stroke="#eaf9ff" stroke-width="3"/>`;
+  if(p.n)lb+=`<text class="pk" x="${p.x}" y="${p.y+q+26}" text-anchor="middle">${p.n}</text>`});
+ h+=pt(bl,'fill="#e8dcae" stroke="#e8dcae" stroke-width="16" stroke-linejoin="round"')+pt(bl,'fill="#5b9c43" stroke="#5b9c43" stroke-width="8"')+pt(bl,'fill="#86c65e"')+pt(pdk,'fill="#6aa94a" fill-opacity=".55"')+pt(pl,'fill="#a6dd78" fill-opacity=".6"')+
+  pt(pp,'fill="none" stroke="#c9b27a" stroke-width="8" stroke-linecap="round"')+pt(pp,'fill="none" stroke="#f5ebc7" stroke-width="4" stroke-linecap="round"')+po+pt(ts,'fill="#1d4f26" fill-opacity=".38"')+pt(tc,'fill="#2f7d3b"')+pt(th,'fill="#6cc15c"')+lb;
+ (M.waters||[]).forEach(w=>h+=[['#a89258',w.w+18],['#efe2b6',w.w+10],['#2fa3d6',w.w],['#8adbee',w.w*.45]].map(([c,x])=>`<path d="${w.d}" fill="none" stroke="${c}" stroke-width="${x}" stroke-linecap="round" stroke-linejoin="round"/>`).join(''));
+ lk.forEach(l=>h+=`<ellipse cx="${l.x}" cy="${l.y}" rx="${l.rx+12}" ry="${l.ry+12}" fill="#e8dcae"/><ellipse cx="${l.x}" cy="${l.y}" rx="${l.rx+6}" ry="${l.ry+6}" fill="#6fae52"/><ellipse cx="${l.x}" cy="${l.y}" rx="${l.rx}" ry="${l.ry}" fill="url(#lk)" stroke="#f3fdff" stroke-width="3"/>`+(l.n?`<text class="pk" x="${l.x}" y="${l.y+l.ry+34}" text-anchor="middle" style="fill:#14607f">${l.n}</text>`:''));
+ const sg=e=>`M${P[e.a].x} ${P[e.a].y}`+(e.v||[]).map(q=>`L${q[0]} ${q[1]}`).join('')+`L${P[e.b].x} ${P[e.b].y}`,by=t=>M.edges.filter(e=>e.t==t),ps=(es,c,w)=>pt(es.map(sg).join(''),`fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`);
+ const T=by('taxi'),B=by('bus'),Mt=by('metro');
+ h+=ps(T,'#9c8153',21)+ps(T,'#fff3cf',16)+ps(Mt,'#fff',18)+ps(Mt,'#d62839',13)+ps(B,'#fff',13)+ps(B,'#2e9e4f',8)+ps(T,'#6b5a3a',3);
+ by('ferry').forEach(e=>{const a=P[e.a],b=P[e.b],pts=[[a.x,a.y],...(e.v||[]),[b.x,b.y]];let d,mid;
+  if(pts.length==2){const dx=b.x-a.x,dy=b.y-a.y,cx=(a.x+b.x)/2-dy*.14,cy=(a.y+b.y)/2+dx*.14;d=`M${a.x} ${a.y}Q${f(cx)} ${f(cy)} ${b.x} ${b.y}`;mid=[(a.x+2*cx+b.x)/4,(a.y+2*cy+b.y)/4]}
+  else{d=`M${pts[0][0]} ${pts[0][1]}`;for(let i=1;i<pts.length-1;i++){const q=pts[i],n2=pts[i+1],m=i<pts.length-2?[(q[0]+n2[0])/2,(q[1]+n2[1])/2]:n2;d+=`Q${q[0]} ${q[1]} ${f(m[0])} ${f(m[1])}`}mid=pts[pts.length>>1]}
+  h+=`<path d="${d}" fill="none" stroke="#0f4c8a" stroke-width="9" stroke-linecap="round" stroke-opacity=".55"/><path d="${d}" fill="none" stroke="#fff" stroke-width="5" stroke-dasharray="16 12" stroke-linecap="round"/><text x="${f(mid[0])}" y="${f(mid[1]+10)}" text-anchor="middle" font-size="34">⛴️</text>`});
+ let tag='';(M.specials||[]).forEach(s=>{const p=P[s.id],x=p.x,y=p.y;
+  if(s.k=='burj'){const Hp=[[34,0],[31,-38],[25,-46],[25,-96],[19,-104],[19,-148],[13,-156],[13,-198],[8,-206],[8,-236],[4,-244],[2,-300],[0,-318]],pts=Hp.concat(Hp.slice(0,-1).reverse().map(a=>[-a[0],a[1]])),T0=y-26,
+    wd=yy=>{for(let i=0;i<Hp.length-1;i++){const a=Hp[i],b=Hp[i+1];if(yy<=a[1]&&yy>=b[1])return a[0]+(b[0]-a[0])*(yy-a[1])/(b[1]-a[1]||1)}return 0};let ln='';for(let yy=-18;yy>-300;yy-=15){const w=wd(yy);ln+=`M${x-w} ${T0+yy}h${2*w}`}
+    h+=`<circle cx="${x}" cy="${y-150}" r="190" fill="url(#bg)"/><path d="${pts.map((a,i)=>(i?'L':'M')+(x+a[0])+' '+(T0+a[1])).join('')}Z" fill="url(#bt)" stroke="#3d526b" stroke-width="2.5" stroke-linejoin="round"/><path d="${Hp.map((a,i)=>(i?'L':'M')+(x+a[0])+' '+(T0+a[1])).join('')}L${x} ${T0}Z" fill="#1e3250" fill-opacity=".22"/><path d="${ln}" stroke="#fff" stroke-opacity=".5" stroke-width="1.6"/><path d="M${x} ${T0-318}v-26" stroke="#d7a928" stroke-width="3"/><circle cx="${x}" cy="${T0-346}" r="4" fill="#ffd60a"/>`;tag+=`<rect x="${x-6}" y="${T0-352}" width="92" height="30" rx="15" fill="#1b2a41" stroke="#ffd60a" stroke-width="3"/><text x="${x+40}" y="${T0-331}" text-anchor="middle" font-size="20" font-weight="900" fill="#ffd60a">828 m</text>`}
+  else if(s.k=='arab'){const bx=x-44,by2=y-26;h+=`<ellipse cx="${bx}" cy="${by2+6}" rx="34" ry="12" fill="#efe2b6" stroke="#fff" stroke-width="4"/><path d="M${bx-22} ${by2}C${bx-30} ${by2-50} ${bx-14} ${by2-96} ${bx+4} ${by2-124}C${bx+26} ${by2-80} ${bx+34} ${by2-36} ${bx+26} ${by2}Z" fill="#fff" stroke="#2a7fa5" stroke-width="3"/><path d="M${bx+4} ${by2-124}V${by2}M${bx-12} ${by2-60}Q${bx+4} ${by2-48} ${bx+22} ${by2-62}" stroke="#2a7fa5" stroke-opacity=".6" stroke-width="2" fill="none"/>`}
+  else if(s.k=='frame')h+=`<rect x="${x-28}" y="${y-112}" width="56" height="84" rx="3" fill="none" stroke="#e2b84a" stroke-width="11"/><rect x="${x-28}" y="${y-112}" width="56" height="84" rx="3" fill="none" stroke="#fff3b0" stroke-width="3" stroke-opacity=".8"/>`});
+ ids.forEach(i=>{const p=P[i],s=has[i]||new Set,dot=(c,dx,dy)=>`<circle cx="${p.x+dx}" cy="${p.y+dy}" r="8" fill="${c}" stroke="#fff" stroke-width="2"/>`;
+  h+=`<g class="nd" data-n="${i}"><circle cx="${p.x}" cy="${p.y}" r="32" fill="#fff0"/><circle cx="${p.x+2}" cy="${p.y+4}" r="21" fill="#000" fill-opacity=".25"/><circle cx="${p.x}" cy="${p.y}" r="21" fill="#fff" stroke="#222" stroke-width="3"/><text x="${p.x}" y="${p.y+6}" text-anchor="middle" font-size="17" font-weight="800">${i}</text>`+
+  (s.has('metro')?dot('#d62839',-18,-18):'')+(s.has('bus')?dot('#2e9e4f',18,-18):'')+(s.has('ferry')?dot('#1565c0',0,24):'')+(M.icons&&M.icons[i]?`<text x="${p.x}" y="${p.y-34}" text-anchor="middle" font-size="30">${M.icons[i]}</text>`:'')+`<text class="nm ${p.id>(M.named||66)?'gn':''}" x="${p.x}" y="${p.y+42}" text-anchor="middle">${p.n}</text></g>`});
+ const v=$('svg');v.setAttribute('viewBox',`0 0 ${W} ${H}`);v.innerHTML=h+`<g style="pointer-events:none">${tag}</g><g id="dyn" style="pointer-events:none"></g>`;setZoom(zoom);
+ v.onclick=e=>{if(window.mapDrag)return;const n=e.target.closest('.nd');n&&tap(+n.dataset.n)}}
+function base(){if(M.style=='poly')return basePoly();const P=M.P,ids=Object.keys(P),has={},K=M.K||M.W/1640*.892,R=Math.round(104*K),W=M.W,H=M.H,pk=M.parks||[],lk=M.lakes||[];
  M.edges.forEach(e=>[e.a,e.b].forEach(n=>(has[n]=has[n]||new Set).add(e.t)));
  const rn=rg(20261102),f=n=>Math.round(n*10)/10;
  const near=(x,y)=>{let m=1e9;for(const i of ids){const a=P[i].x-x,b=P[i].y-y,d=a*a+b*b;if(d<m)m=d}return Math.sqrt(m)};
@@ -139,8 +199,9 @@ function render(){$('home').hidden=!!S;$('lobby').hidden=!S||S.phase!='lobby';$(
  if(S.phase=='lobby')return lobby();game()}
 const KB=p=>S.host==me&&p.id!=me&&(!p.on||S.phase=='lobby')?`<button data-kick="${p.id}" style="margin-left:auto;padding:6px 10px;font-size:13px;background:#8b2635">Kick</button>`:'';
 function lobby(){$('lc').textContent=S.code;const h=S.host==me;
+ $('mp').innerHTML=MAPLIST.map(m=>`<div class="mc ${S.map==m.id?'sel':''} ${h?'':'dis'}" data-map="${m.id}"><svg viewBox="0 0 100 100"><path d="${m.pts.map(p=>`M${p[0]} ${p[1]}h.01`).join('')}" stroke="#f3e7bd" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg><b>${m.emoji} ${m.name}</b>${m.stations} stations · ${m.metro} metro · ${m.ferry} ferry</div>`).join('');
  $('lp').innerHTML=S.players.map((p,i)=>`<div class="pr"><span class="dot" style="background:${C[i%8]}"></span>${p.name}${p.id==me?' (you)':''}${p.id==S.host?' 👑':''}${p.on?'':' · offline'}${KB(p)}</div>`).join('');
- $('st').hidden=!h;$('st').disabled=S.players.length<3;$('lh').textContent=`${S.players.length}/9 joined · need 3+ to start${h?'':' · waiting for host'}`}
+ $('st').hidden=!h;$('st').disabled=S.players.length<3;$('lh').textContent=`${S.players.length}/9 joined · need 3+ to start${h?' · tap a map to choose it':' · host picks the map'}`}
 function game(){const you=S.players.find(p=>p.id==me),X=you.role=='x',mine=S.turn==me,cur=S.players.find(p=>p.id==S.turn);
  const nx=M.reveal.find(r=>r>S.round);$('info').innerHTML=`${X?'🕶 <b>You are Mr. X</b>':'🕵 <b>Detective</b>'} · Move <b>${S.round}/${M.rounds}</b>${nx?` · Reveal at ${nx}`:''}`;
  $('ban').className=mine?'me':'';$('ban').textContent=S.phase=='over'?'Game over':mine?(X&&!S.fresh?'Move again!':'Your move!'):`${cur?cur.name:''}${cur&&!cur.on?' (offline)':''}…`;
